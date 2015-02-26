@@ -10,6 +10,7 @@ class SpikeProgram(gl_program.GLProgram):
     def __init__(self, width, height):
         self.width = width      # size of the grid
         self.height = height    # size of the grid
+        self.scale = gl_program.GLUniform()     # brightness of spike
         super(SpikeProgram, self).__init__()
 
     def vertex_shader(self):
@@ -36,15 +37,17 @@ class SpikeProgram(gl_program.GLProgram):
     def fragment_shader(self):
         return """#version 330
             out vec4 out_color;
+            uniform float scale;
 
             void main()
             {
+                //vec4 alpha = texture2D(texture1, gl_TexCoord[0].st).aaaa;
                 // draw a white dot
-                out_color = vec4(1., 1., 1., 1.);
+                out_color = vec4(1., 1., 1., scale);
             }
             """
 
-    def paint_spikes(self, data):
+    def paint_spikes(self, data, scale=1.0):
         """Render the given array of neuron indexes."""
 
         # convert the data to a VBO
@@ -60,6 +63,7 @@ class SpikeProgram(gl_program.GLProgram):
 
         # activate the program
         gl.glUseProgram(self.program)
+        gl.glUniform1f(self.scale, scale)
 
         # draw the spikes
         gl.glDrawArrays(gl.GL_POINTS, 0, len(data))
