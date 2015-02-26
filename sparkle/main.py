@@ -13,8 +13,8 @@ import qt_helpers
 
 sparkle_width = 4096
 sparkle_height = 4096
-spikes_per_frame = 1000000
-decay_rate = 0.9
+spikes_per_frame = 1000000 * 2
+decay_rate = 0.90
 
 
 class GLPlotWidget(QGLWidget):
@@ -36,14 +36,21 @@ class GLPlotWidget(QGLWidget):
         self.draw_texture = draw_texture.DrawTextureProgram()
         self.draw_texture.link()
 
+        self.data = [np.random.randint(sparkle_width * sparkle_height,
+                                 size=spikes_per_frame) for i in range(100)]
+
+
+    index = 0
     def paintGL(self):
         # fade out the sparkle plot
         self.fader.swap_frame_buffer()
         self.fader.paint_faded(decay=decay_rate)
 
         # generate spike data
-        data = np.random.randint(sparkle_width * sparkle_height,
-                                 size=spikes_per_frame)
+        #data = np.random.randint(sparkle_width * sparkle_height,
+        #                         size=spikes_per_frame)
+        data = self.data[self.index]
+        self.index = (self.index + 1) % len(self.data)
         self.spike_count += len(data)
         # paint the spikes onto the sparkle plot
         self.spiker.paint_spikes(data)
