@@ -6,43 +6,41 @@ import OpenGL.GL as gl
 import OpenGL.arrays.vbo as glvbo
 import numpy as np
 
-import spiker
-import fader
+import raster
+import slider
 import draw_texture
 import qt_helpers
 
-sparkle_width = 64
-sparkle_height = 64
-spikes_per_frame = 1
-decay_time = 0.01
-
+raster_width = 1024
+raster_height = 64
+raster_n_neurons = 64
+spikes_per_frame = 5
 
 class GLPlotWidget(QGLWidget):
     # default window size
     width, height = 600, 600
     t_last_msg = time.time()
     spike_count = 0
-    data = np.random.randint(sparkle_width * sparkle_height,
-                                 size=spikes_per_frame)
+    last_time = None
 
 
     def initializeGL(self):
         # program for drawing spikes
-        self.spiker = spiker.SpikeProgram(sparkle_width, sparkle_height)
-        self.spiker.link()
+        self.raster = raster.RasterProgram(raster_width, raster_height,
+                                           raster_n_neurons)
+        self.raster.link()
 
         # program for fading sparkleplot
-        self.fader = fader.FadeProgram(sparkle_width, sparkle_height)
-        self.fader.link()
+        self.slider = slider.SlideProgram(raster_width, raster_height)
+        self.slider.link()
 
         # program for rendering a texture on the screen
         self.draw_texture = draw_texture.DrawTextureProgram()
         self.draw_texture.link()
 
-        self.last_time = None
 
     def paintGL(self):
-        now = time.clock()
+        now = time.time()
         if self.last_time is None:
             decay = 0.0
             self.dt = None
@@ -51,29 +49,30 @@ class GLPlotWidget(QGLWidget):
             if self.dt is None:
                 self.dt = dt
             else:
+                #self.dt = dt
                 self.dt = (0.9) * self.dt + (0.1) * dt
-            decay = np.exp(-self.dt / decay_time)
         self.last_time = now
 
-        # fade out the sparkle plot
-        self.fader.swap_frame_buffer()
-        self.fader.paint_faded(decay=decay)
+        if self.dt is not None:
+            self.slider.swap_frame_buffer(int(self.dt/0.001))
+            self.slider.paint_slid()
 
         #data = self.data
-        data = np.random.randint(sparkle_width * sparkle_height,
-                                 size=spikes_per_frame)
+        data = np.random.randint(raster_n_neurons,
+                                 size=spikes_per_frame).astype('int32')
 
         # generate spike data
         self.spike_count += len(data)
         # paint the spikes onto the sparkle plot
-        self.spiker.paint_spikes(data, scale = 1.0 - decay)
+        self.slider.swap_frame_buffer(0, False)
+        self.raster.paint_spikes(data)
 
         # switch to rendering on the screen
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
         gl.glViewport(0, 0, self.width, self.height)
 
         # draw the sparkle plot on the screen
-        self.draw_texture.paint(self.fader.get_current_texture())
+        self.draw_texture.paint(self.slider.get_current_texture())
 
         # print out spike rate
         now = time.time()

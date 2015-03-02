@@ -5,20 +5,17 @@ import OpenGL.arrays.vbo as glvbo
 import gl_program
 
 
-class FadeProgram(gl_program.GLProgram):
-    """Double-buffered fading algorithm.
+class SlideProgram(gl_program.GLProgram):
+    """Double-buffered slider algorithm.
 
-    Contains two textures, and renders one onto the other, but slightly
-    darker.  Each frame you can indicate how much darker to go using the
-    decay uniform variable.
+    Contains two textures, and renders one onto the other, but shifted.
     """
     def __init__(self, width, height):
         self.width = width
         self.height = height
         self.texture1 = gl_program.GLUniform()  # which texture core to use
-        self.decay = gl_program.GLUniform()     # multiplicative decay
         self.usingA = True                      # which buffer are we using
-        super(FadeProgram, self).__init__()
+        super(SlideProgram, self).__init__()
 
     def vertex_shader(self):
         return """#version 110
@@ -33,12 +30,10 @@ class FadeProgram(gl_program.GLProgram):
     def fragment_shader(self):
         return """#version 110
             uniform sampler2D texture1;
-            uniform float decay;
 
             void main()
             {
-                // look up the texture value, then decay it a bit
-                gl_FragColor = texture2D(texture1, gl_TexCoord[0].st) * decay;
+                gl_FragColor = texture2D(texture1, gl_TexCoord[0].st);
             }
             """
 
@@ -47,9 +42,9 @@ class FadeProgram(gl_program.GLProgram):
         self.textureA = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.textureA)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER,
-                           gl.GL_NEAREST)  # don't blur the texture
+                           gl.GL_NEAREST)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER,
-                           gl.GL_NEAREST)  # don't blur the texture
+                           gl.GL_NEAREST) 
         gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S,
                            gl.GL_CLAMP_TO_EDGE)  # don't wrap around
         gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T,
@@ -73,9 +68,15 @@ class FadeProgram(gl_program.GLProgram):
                            self.width, self.height, 0,
                            gl.GL_RGBA, gl.GL_UNSIGNED_SHORT, None)
 
+
         # create the frame buffers
         self.fbA = gl.glGenFramebuffers(1)
         self.fbB = gl.glGenFramebuffers(1)
+
+        self.swap_frame_buffer(slide=0)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+        self.swap_frame_buffer(slide=0)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 
         # create a convenient square for rendering
         # data is in (x, y, z, u, v) format
@@ -90,7 +91,7 @@ class FadeProgram(gl_program.GLProgram):
             ],'f')
         )
 
-    def swap_frame_buffer(self, swap=True):
+    def swap_frame_buffer(self, slide=1, swap=True):
         """Switch buffers so we alternate which one we're rendering to."""
         if swap:
             self.usingA = not self.usingA
@@ -107,16 +108,15 @@ class FadeProgram(gl_program.GLProgram):
                   gl.GL_TEXTURE_2D, self.textureB, 0);
 
         # reset the geometry so we render to the whole image
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(-slide, 0, self.width, self.height)
 
 
-    def paint_faded(self, decay):
-        """Draw a faded version of the old texture onto the new texture."""
+    def paint_slid(self):
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 
         # activate the program and set parameters
         gl.glUseProgram(self.program)
         gl.glUniform1i(self.texture1, 0)  # indicate we use GL_TEXTURE0
-        gl.glUniform1f(self.decay, decay)
 
         # set up the texture to map
         gl.glEnable(gl.GL_TEXTURE_2D)
@@ -125,6 +125,7 @@ class FadeProgram(gl_program.GLProgram):
             gl.glBindTexture(gl.GL_TEXTURE_2D, self.textureB)
         else:
             gl.glBindTexture(gl.GL_TEXTURE_2D, self.textureA)
+
 
         # a simple square filling the whole view
         self.square.bind()
