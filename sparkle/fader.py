@@ -45,6 +45,7 @@ class FadeProgram(gl_program.GLProgram):
     def initialize(self):
         # create the textures
         self.textureA = gl.glGenTextures(1)
+        print 'textureA', self.textureA
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.textureA)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER,
                            gl.GL_NEAREST)  # don't blur the texture
@@ -90,9 +91,10 @@ class FadeProgram(gl_program.GLProgram):
             ],'f')
         )
 
-    def swap_frame_buffer(self):
+    def swap_frame_buffer(self, swap=True):
         """Switch buffers so we alternate which one we're rendering to."""
-        self.usingA = not self.usingA
+        if swap:
+            self.usingA = not self.usingA
 
         if self.usingA:
             gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.fbA);

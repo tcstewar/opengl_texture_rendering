@@ -41,7 +41,6 @@ class SpikeProgram(gl_program.GLProgram):
 
             void main()
             {
-                //vec4 alpha = texture2D(texture1, gl_TexCoord[0].st).aaaa;
                 // draw a white dot
                 out_color = vec4(1., 1., 1., scale);
             }
@@ -65,6 +64,13 @@ class SpikeProgram(gl_program.GLProgram):
         gl.glUseProgram(self.program)
         gl.glUniform1f(self.scale, scale)
 
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendEquationSeparate(gl.GL_FUNC_ADD, gl.GL_FUNC_ADD)
+        gl.glBlendFuncSeparate(gl.GL_ONE, gl.GL_ONE, 
+                               gl.GL_ZERO, gl.GL_ONE)
+
         # draw the spikes
         gl.glDrawArrays(gl.GL_POINTS, 0, len(data))
+
+        gl.glDisable(gl.GL_BLEND)
 

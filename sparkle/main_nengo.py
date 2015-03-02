@@ -101,7 +101,9 @@ class GLSparklePlotWidget(QGLWidget):
         self.draw_texture.link()
 
     def add_spikes(self, spikes):
-        self.data.append(np.copy(spikes).astype(int))
+        #self.fader.swap_frame_buffer(swap=False)
+        #self.spiker.paint_spikes(spikes.astype('int32'))
+        self.data.append(np.copy(spikes).astype('int32'))
         if len(self.data) > 5:
             self.data = self.data[-5:]
 
